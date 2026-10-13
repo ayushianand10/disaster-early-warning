@@ -1,0 +1,29 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Local database / test output files
+*.csv
+!sample_data.csv
+.DS_Store
+Thumbs.db
+
+# Cloud credentials / secrets (NEVER commit secrets)
+*.json
+!package.json
+!tsconfig.json
+.env
+*.key
+service_account.json
