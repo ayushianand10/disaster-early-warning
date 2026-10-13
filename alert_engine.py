@@ -106,22 +106,53 @@ def evaluate_environmental_risk(
     explanations: List[str] = []
     risk_rank = 0  # 0: NORMAL, 1: WARNING, 2: CRITICAL
 
-    # 1. Flood Risk Detection (Multi-parameter: Rainfall + Water Level)
-    if rainfall >= thresholds.flood_rainfall_critical and water_level >= thresholds.flood_water_level_critical:
+    # 1. Flood & Water Level Hazard Detection (Evaluated against active thresholds)
+    rain_crit = rainfall >= thresholds.flood_rainfall_critical
+    water_crit = water_level >= thresholds.flood_water_level_critical
+    rain_warn = rainfall >= thresholds.flood_rainfall_warning
+    water_warn = water_level >= thresholds.flood_water_level_warning
+
+    if rain_crit and water_crit:
         risk_rank = max(risk_rank, 2)
         hazards_detected.append("CRITICAL FLOOD RISK")
         explanations.append(
-            f"Severe flood condition: Extreme rainfall ({rainfall:.1f} mm ≥ {thresholds.flood_rainfall_critical} mm) "
-            f"coupled with dangerously high reservoir/river water level ({water_level:.1f}% ≥ {thresholds.flood_water_level_critical}%)."
+            f"Severe flood emergency: Extreme rainfall ({rainfall:.1f} mm ≥ {thresholds.flood_rainfall_critical:.1f} mm) "
+            f"coupled with dangerously high reservoir/river water level ({water_level:.1f}% ≥ {thresholds.flood_water_level_critical:.1f}%)."
         )
-    elif rainfall >= thresholds.flood_rainfall_warning or water_level >= thresholds.flood_water_level_warning:
+    elif rain_crit:
+        risk_rank = max(risk_rank, 2)
+        hazards_detected.append("CRITICAL FLOOD RISK")
+        if water_warn:
+            explanations.append(
+                f"Critical flood condition: Extreme rainfall ({rainfall:.1f} mm ≥ {thresholds.flood_rainfall_critical:.1f} mm) "
+                f"with elevated reservoir/river water level ({water_level:.1f}% ≥ {thresholds.flood_water_level_warning:.1f}%)."
+            )
+        else:
+            explanations.append(
+                f"Critical flood condition: Torrential rainfall ({rainfall:.1f} mm ≥ {thresholds.flood_rainfall_critical:.1f} mm) "
+                f"exceeds critical safety threshold, posing imminent flood risk."
+            )
+    elif water_crit:
+        risk_rank = max(risk_rank, 2)
+        hazards_detected.append("CRITICAL FLOOD RISK")
+        if rain_warn:
+            explanations.append(
+                f"Critical flood condition: Dangerously high reservoir/river water level ({water_level:.1f}% ≥ {thresholds.flood_water_level_critical:.1f}%) "
+                f"with heavy rainfall ({rainfall:.1f} mm ≥ {thresholds.flood_rainfall_warning:.1f} mm)."
+            )
+        else:
+            explanations.append(
+                f"Critical flood condition: Dangerously high reservoir/river water level ({water_level:.1f}% ≥ {thresholds.flood_water_level_critical:.1f}%) "
+                f"exceeds critical capacity threshold."
+            )
+    elif rain_warn or water_warn:
         risk_rank = max(risk_rank, 1)
         hazards_detected.append("FLOOD WARNING")
         reasons = []
-        if rainfall >= thresholds.flood_rainfall_warning:
-            reasons.append(f"Heavy rainfall ({rainfall:.1f} mm ≥ {thresholds.flood_rainfall_warning} mm)")
-        if water_level >= thresholds.flood_water_level_warning:
-            reasons.append(f"Elevated water level ({water_level:.1f}% ≥ {thresholds.flood_water_level_warning}%)")
+        if rain_warn:
+            reasons.append(f"Heavy rainfall ({rainfall:.1f} mm ≥ {thresholds.flood_rainfall_warning:.1f} mm)")
+        if water_warn:
+            reasons.append(f"Elevated water level ({water_level:.1f}% ≥ {thresholds.flood_water_level_warning:.1f}%)")
         explanations.append("Moderate flood watch: " + " and ".join(reasons) + ".")
 
     # 2. Extreme Heat Risk Detection
