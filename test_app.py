@@ -43,6 +43,28 @@ class TestDisasterWarningSystem(unittest.TestCase):
         is_valid, errors = validate_readings(rainfall=10.0, water_level=50.0, temperature=95.0, aqi=55.0)
         self.assertFalse(is_valid)
 
+    def test_input_validation_null_value(self):
+        """Test that None values are safely caught without crashing."""
+        is_valid, errors = validate_readings(rainfall=None, water_level=50.0, temperature=25.0, aqi=50.0)
+        self.assertFalse(is_valid)
+        self.assertTrue(any("cannot be null" in e for e in errors))
+
+    def test_input_validation_nan_and_inf(self):
+        """Test that NaN and Infinity are caught and rejected."""
+        is_valid, errors = validate_readings(rainfall=float("nan"), water_level=50.0, temperature=25.0, aqi=50.0)
+        self.assertFalse(is_valid)
+        self.assertTrue(any("nan" in e.lower() for e in errors))
+
+        is_valid2, errors2 = validate_readings(rainfall=50.0, water_level=float("inf"), temperature=25.0, aqi=50.0)
+        self.assertFalse(is_valid2)
+        self.assertTrue(any("infinite" in e.lower() for e in errors2))
+
+    def test_input_validation_non_numeric_string(self):
+        """Test that invalid non-numeric strings are safely caught."""
+        is_valid, errors = validate_readings(rainfall="invalid_val", water_level=50.0, temperature=25.0, aqi=50.0)
+        self.assertFalse(is_valid)
+        self.assertTrue(any("numeric reading" in e for e in errors))
+
     def test_normal_baseline_scenario(self):
         """Test that safe readings yield NORMAL risk."""
         result = evaluate_environmental_risk(

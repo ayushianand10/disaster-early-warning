@@ -12,6 +12,7 @@ Thresholds are illustrative and not official meteorological limits.
 """
 
 from dataclasses import dataclass
+import math
 from typing import Dict, List, Tuple, Any
 
 
@@ -36,25 +37,54 @@ class ThresholdConfig:
 DEFAULT_THRESHOLDS = ThresholdConfig()
 
 
-def validate_readings(rainfall: float, water_level: float, temperature: float, aqi: float) -> Tuple[bool, List[str]]:
+def validate_readings(rainfall: Any, water_level: Any, temperature: Any, aqi: Any) -> Tuple[bool, List[str]]:
     """
     Validates physical feasibility and sensor input bounds.
     Returns (is_valid, error_messages).
+    Safely handles None, non-numeric types, NaN, and Infinity.
     """
-    errors = []
+    errors: List[str] = []
 
-    if rainfall < 0:
+    # 1. Null, Type, and Numeric Validity Checks
+    param_checks = [
+        ("Rainfall", rainfall),
+        ("Water level", water_level),
+        ("Temperature", temperature),
+        ("Air Quality Index (AQI)", aqi)
+    ]
+    for param_name, param_val in param_checks:
+        if param_val is None:
+            errors.append(f"{param_name} cannot be null or empty.")
+        elif not isinstance(param_val, (int, float)):
+            try:
+                float(param_val)
+            except (ValueError, TypeError):
+                errors.append(f"{param_name} must be a valid numeric reading.")
+        elif math.isnan(param_val) or math.isinf(param_val):
+            errors.append(f"{param_name} cannot be NaN or infinite.")
+
+    # Return early if fundamental data types are invalid
+    if errors:
+        return False, errors
+
+    # 2. Physical Sensor Bounds Checks
+    r = float(rainfall)
+    w = float(water_level)
+    t = float(temperature)
+    a = float(aqi)
+
+    if r < 0:
         errors.append("Rainfall cannot be negative.")
-    elif rainfall > 1000:
+    elif r > 1000:
         errors.append("Rainfall exceeds realistic meteorological upper limit (1000 mm).")
 
-    if water_level < 0 or water_level > 100:
+    if w < 0 or w > 100:
         errors.append("Water level must be a percentage between 0% and 100%.")
 
-    if temperature < -50 or temperature > 65:
+    if t < -50 or t > 65:
         errors.append("Temperature must be within plausible range (-50°C to 65°C).")
 
-    if aqi < 0 or aqi > 500:
+    if a < 0 or a > 500:
         errors.append("Air Quality Index (AQI) must be between 0 and 500.")
 
     return len(errors) == 0, errors
