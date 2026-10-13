@@ -2,20 +2,17 @@
 Disaster Early Warning and Emergency Alert System
 =================================================
 Academic Prototype for B.Tech Cloud Computing FT-III Assessment
-
 Author: B.Tech Cloud Computing Student
 Deployment Platform: Streamlit Community Cloud (Managed PaaS)
 Containerization Capability: Dockerfile included for OCI-compliant hosting
 Persistence: Local Memory & Session CSV (Ephemeral Demo Mode)
 """
-
 import time
 import os
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-
 from alert_engine import (
     evaluate_environmental_risk,
     validate_readings,
@@ -24,17 +21,14 @@ from alert_engine import (
 )
 from sample_data import DEMO_SCENARIOS, generate_simulated_history
 from storage_manager import StorageManager
-
 # -----------------------------------------------------------------------------
 # 1. Page Configuration & Professional Theming
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Disaster Early Warning System | FT-III",
-    page_icon="🚨",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
 # Custom styling with dark navy, teal, green, amber, and red color scheme
 st.markdown("""
 <style>
@@ -60,7 +54,6 @@ st.markdown("""
         margin: 0;
         font-size: 0.95rem;
     }
-
     /* Academic Notice Banner */
     .disclaimer-banner {
         background-color: #FEF3C7;
@@ -72,7 +65,6 @@ st.markdown("""
         line-height: 1.45;
         margin-bottom: 20px;
     }
-
     /* Distinct & Accessible Alert Panels */
     .alert-panel-critical {
         background-color: #FEE2E2;
@@ -101,7 +93,6 @@ st.markdown("""
         margin-bottom: 20px;
         color: #065F46;
     }
-
     /* High-Contrast Dark Navy KPI Metric Cards */
     div[data-testid="stMetric"] {
         background-color: #1E293B !important;
@@ -135,7 +126,6 @@ st.markdown("""
     div[data-testid="stMetricDelta"] * {
         font-weight: 600 !important;
     }
-
     /* Plotly Chart Wrapper */
     div[data-testid="stPlotlyChart"] {
         background-color: #1E293B;
@@ -144,7 +134,6 @@ st.markdown("""
         border: 1px solid #334155;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
     }
-
     /* Sidebar Section Accents */
     .sidebar-badge {
         display: inline-block;
@@ -157,19 +146,16 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-
 # -----------------------------------------------------------------------------
 # 2. Session State Initialization
 # -----------------------------------------------------------------------------
 if "storage_manager" not in st.session_state:
     st.session_state.storage_manager = StorageManager()
-
 # Pre-populate with realistic 18-record baseline history on first load
 if "initialized_history" not in st.session_state:
     initial_records = generate_simulated_history(num_records=18)
     st.session_state.storage_manager.load_bulk_records(initial_records)
     st.session_state.initialized_history = True
-
 # Store current sensor values in session state for cross-component reactivity
 if "current_values" not in st.session_state:
     st.session_state.current_values = {
@@ -179,23 +165,19 @@ if "current_values" not in st.session_state:
         "aqi": 50.0,
         "source": "Initial Simulated Baseline"
     }
-
 # -----------------------------------------------------------------------------
 # 3. Sidebar Controls & Simulation Panel
 # -----------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown("### 🎛️ Simulation Controls")
-
+    st.markdown("### Simulation Controls")
     st.markdown("---")
     st.markdown("#### 1-Click Demonstration Scenarios")
     st.caption("Instantly load realistic hazard conditions for classroom/viva assessment:")
-
     selected_scenario = st.selectbox(
         "Select Scenario Preset:",
         options=list(DEMO_SCENARIOS.keys())
     )
-
-    if st.button("📥 Apply Scenario", use_container_width=True):
+    if st.button("Apply Scenario", use_container_width=True):
         scenario_data = DEMO_SCENARIOS[selected_scenario]
         st.session_state.current_values = {
             "rainfall": scenario_data["rainfall"],
@@ -204,13 +186,11 @@ with st.sidebar:
             "aqi": scenario_data["aqi"],
             "source": scenario_data["source"]
         }
-        st.toast(f"Loaded scenario: {selected_scenario}", icon="✅")
+        st.toast(f"Loaded scenario: {selected_scenario}")
         st.rerun()
-
     st.markdown("---")
     st.markdown("#### Manual Sensor Input")
     st.caption("Enter simulated readings to test boundary conditions:")
-
     input_rainfall = st.number_input(
         "Rainfall (mm):",
         min_value=0.0,
@@ -219,7 +199,6 @@ with st.sidebar:
         step=5.0,
         help="Simulated precipitation depth over the watershed catchment area."
     )
-
     input_water_level = st.slider(
         "Reservoir / River Water Level (%):",
         min_value=0.0,
@@ -228,7 +207,6 @@ with st.sidebar:
         step=1.0,
         help="Simulated reservoir capacity or river gauge saturation percentage."
     )
-
     input_temperature = st.number_input(
         "Ambient Temperature (°C):",
         min_value=-30.0,
@@ -237,7 +215,6 @@ with st.sidebar:
         step=0.5,
         help="Simulated ambient air temperature in degrees Celsius."
     )
-
     input_aqi = st.number_input(
         "Air Quality Index (AQI):",
         min_value=0.0,
@@ -246,11 +223,9 @@ with st.sidebar:
         step=5.0,
         help="Simulated Air Quality Index (0-500 standard scale)."
     )
-
     # Configurable Hazard Thresholds (Updates both Alert Engine and Plotly Charts)
-    with st.expander("⚙️ Configurable Hazard Thresholds", expanded=False):
+    with st.expander("Configurable Hazard Thresholds", expanded=False):
         st.caption("Adjust limits to test dynamic evaluation and chart threshold lines:")
-        
         st.markdown("**Critical Limits (Emergency):**")
         col_c1, col_c2 = st.columns(2)
         with col_c1:
@@ -259,7 +234,6 @@ with st.sidebar:
         with col_c2:
             flood_water_thresh = st.number_input("Crit Water (%)", value=80.0, step=5.0)
             aqi_thresh = st.number_input("Crit AQI", value=200.0, step=10.0)
-
         st.markdown("**Warning Limits (Watch):**")
         col_w1, col_w2 = st.columns(2)
         with col_w1:
@@ -268,7 +242,6 @@ with st.sidebar:
         with col_w2:
             flood_water_warn = st.number_input("Warn Water (%)", value=65.0, step=5.0)
             aqi_warn = st.number_input("Warn AQI", value=120.0, step=10.0)
-
         active_thresholds = ThresholdConfig(
             flood_rainfall_critical=float(flood_rain_thresh),
             flood_water_level_critical=float(flood_water_thresh),
@@ -279,34 +252,29 @@ with st.sidebar:
             aqi_critical=float(aqi_thresh),
             aqi_warning=float(aqi_warn)
         )
-
     col_btn1, col_btn2 = st.columns(2)
     with col_btn1:
-        submit_btn = st.button("🚀 Analyze & Log", type="primary", use_container_width=True)
+        submit_btn = st.button("Analyze & Log", type="primary", use_container_width=True)
     with col_btn2:
-        reset_btn = st.button("🧹 Clear Logs", use_container_width=True)
-
+        reset_btn = st.button("Clear Logs", use_container_width=True)
     if reset_btn:
         st.session_state.storage_manager.clear_records()
         st.warning("Cleared historical monitoring records.")
         st.rerun()
-
-    if st.button("🔄 Regenerate 24-Hr Time-Series", use_container_width=True):
+    if st.button("Regenerate 24-Hr Time-Series", use_container_width=True):
         st.session_state.storage_manager.clear_records()
         st.session_state.storage_manager.load_bulk_records(generate_simulated_history(24))
         st.success("Loaded 24-hour simulation sequence.")
         st.rerun()
-
     st.markdown("---")
     # Cloud Architecture & Deployment Status Section (Strictly Accurate)
-    st.markdown("#### ☁️ Cloud Architecture Info")
+    st.markdown("#### Cloud Architecture Information")
     st.markdown("""
     - **Deployment Target:** Streamlit Community Cloud (Managed PaaS)
     - **Data Persistence:** Local Session & Memory (Ephemeral Demo Mode)
     - **Container Spec:** Dockerfile included (OCI-compliant capability)
     """)
-    st.caption("ℹ️ Sensor streams are simulated. Storage is scoped to the current execution session.")
-
+    st.caption("Sensor streams are simulated. Storage is scoped to the current execution session.")
 # -----------------------------------------------------------------------------
 # 4. Input Processing & Rule-Based Analysis
 # -----------------------------------------------------------------------------
@@ -315,20 +283,16 @@ st.session_state.current_values["rainfall"] = input_rainfall
 st.session_state.current_values["water_level"] = input_water_level
 st.session_state.current_values["temperature"] = input_temperature
 st.session_state.current_values["aqi"] = input_aqi
-
 # Measure local risk evaluation processing latency
 t_start = time.perf_counter()
-
 # Validate inputs
 is_valid, validation_errors = validate_readings(
     input_rainfall, input_water_level, input_temperature, input_aqi
 )
-
 if not is_valid:
     for err in validation_errors:
         st.error(f"Input Validation Error: {err}")
     st.stop()
-
 # Evaluate environmental risk using active configured thresholds
 analysis_result = evaluate_environmental_risk(
     rainfall=input_rainfall,
@@ -337,10 +301,8 @@ analysis_result = evaluate_environmental_risk(
     aqi=input_aqi,
     thresholds=active_thresholds
 )
-
 t_end = time.perf_counter()
 processing_latency_ms = round((t_end - t_start) * 1000, 4)
-
 # If user clicked "Analyze & Log", persist the reading
 if submit_btn:
     new_record = {
@@ -355,29 +317,26 @@ if submit_btn:
         "data_source": "Simulated Sensor Reading"
     }
     st.session_state.storage_manager.save_record(new_record)
-    st.toast("Simulated reading logged successfully!", icon="✅")
-
+    st.toast("Simulated reading logged successfully!")
 # -----------------------------------------------------------------------------
 # 5. Header & Academic Prototype Disclaimer
 # -----------------------------------------------------------------------------
 st.markdown("""
 <div class="app-header">
-    <h1>🚨 Disaster Early Warning System</h1>
+    <h1>Disaster Early Warning System</h1>
     <p>Real-Time Environmental Hazard Monitoring & Emergency Alert Generation | B.Tech Cloud Computing FT-III</p>
 </div>
 """, unsafe_allow_html=True)
-
 st.markdown("""
 <div class="disclaimer-banner">
-    <strong>⚠️ ACADEMIC PROTOTYPE NOTICE:</strong> This application is developed for the 
-    <strong>B.Tech Cloud Computing FT-III Assessment</strong>. All environmental metrics and sensor feeds are 
-    <strong>simulated</strong> for demonstration of cloud concepts (PaaS hosting, container packaging capability, 
-    rule-based evaluation, and data visualization). Historical records are session-specific and not stored in a 
-    durable cloud database. Generated alerts are <strong>illustrative academic outputs</strong> and do not 
+    <strong>ACADEMIC PROTOTYPE NOTICE:</strong> This application is developed for the&#x20;
+    <strong>B.Tech Cloud Computing FT-III Assessment</strong>. All environmental metrics and sensor feeds are&#x20;
+    <strong>simulated</strong> for demonstration of cloud concepts (PaaS hosting, container packaging capability,&#x20;
+    rule-based evaluation, and data visualization). Historical records are session-specific and not stored in a&#x20;
+    durable cloud database. Generated alerts are <strong>illustrative academic outputs</strong> and do not&#x20;
     constitute official meteorological or civil emergency warnings.
 </div>
 """, unsafe_allow_html=True)
-
 # -----------------------------------------------------------------------------
 # 6. Current Risk Status Banner & Root Cause Explanation Panel
 # -----------------------------------------------------------------------------
@@ -385,7 +344,7 @@ risk_status = analysis_result["status"]
 if risk_status == "CRITICAL":
     st.markdown(f"""
     <div class="alert-panel-critical">
-        <h3 style="margin-top:0; color:#991B1B;">🔴 RISK STATUS: CRITICAL EMERGENCY</h3>
+        <h3 style="margin-top:0; color:#991B1B;">RISK STATUS: CRITICAL EMERGENCY</h3>
         <p><strong>Triggered Hazards:</strong> {analysis_result['alert_summary']}</p>
         <p style="margin-bottom:0;"><strong>Root Cause Analysis:</strong> {analysis_result['alert_message']}</p>
     </div>
@@ -393,7 +352,7 @@ if risk_status == "CRITICAL":
 elif risk_status == "WARNING":
     st.markdown(f"""
     <div class="alert-panel-warning">
-        <h3 style="margin-top:0; color:#92400E;">🟠 RISK STATUS: WARNING WATCH</h3>
+        <h3 style="margin-top:0; color:#92400E;">RISK STATUS: WARNING WATCH</h3>
         <p><strong>Triggered Anomalies:</strong> {analysis_result['alert_summary']}</p>
         <p style="margin-bottom:0;"><strong>Root Cause Analysis:</strong> {analysis_result['alert_message']}</p>
     </div>
@@ -401,21 +360,18 @@ elif risk_status == "WARNING":
 else:
     st.markdown(f"""
     <div class="alert-panel-normal">
-        <h3 style="margin-top:0; color:#065F46;">🟢 RISK STATUS: NORMAL (SAFE)</h3>
+        <h3 style="margin-top:0; color:#065F46;">RISK STATUS: NORMAL (SAFE)</h3>
         <p><strong>Status Summary:</strong> {analysis_result['alert_summary']}</p>
         <p style="margin-bottom:0;"><strong>Root Cause Analysis:</strong> {analysis_result['alert_message']}</p>
     </div>
     """, unsafe_allow_html=True)
-
 # -----------------------------------------------------------------------------
 # 7. Summary Cards / Metric KPIs (Using Active Configurable Thresholds)
 # -----------------------------------------------------------------------------
 df_history = st.session_state.storage_manager.get_dataframe()
 total_alerts = len(df_history[df_history["risk_level"].isin(["WARNING", "CRITICAL"])]) if not df_history.empty else 0
 total_records = len(df_history)
-
 col_m1, col_m2, col_m3, col_m4, col_m5 = st.columns(5)
-
 with col_m1:
     rain_delta = (
         f"Crit ≥ {active_thresholds.flood_rainfall_critical:.0f} mm"
@@ -427,12 +383,11 @@ with col_m1:
         )
     )
     st.metric(
-        label="🌧️ Rainfall",
+        label="Rainfall",
         value=f"{input_rainfall:.1f} mm",
         delta=rain_delta,
         delta_color="inverse" if input_rainfall >= active_thresholds.flood_rainfall_warning else "normal"
     )
-
 with col_m2:
     water_delta = (
         f"Crit ≥ {active_thresholds.flood_water_level_critical:.0f}%"
@@ -444,12 +399,11 @@ with col_m2:
         )
     )
     st.metric(
-        label="🌊 Water Level",
+        label="Water Level",
         value=f"{input_water_level:.1f} %",
         delta=water_delta,
         delta_color="inverse" if input_water_level >= active_thresholds.flood_water_level_warning else "normal"
     )
-
 with col_m3:
     temp_delta = (
         f"Crit ≥ {active_thresholds.temp_critical:.0f}°C"
@@ -461,12 +415,11 @@ with col_m3:
         )
     )
     st.metric(
-        label="🌡️ Temperature",
+        label="Temperature",
         value=f"{input_temperature:.1f} °C",
         delta=temp_delta,
         delta_color="inverse" if input_temperature >= active_thresholds.temp_warning else "normal"
     )
-
 with col_m4:
     aqi_delta = (
         f"Crit ≥ {active_thresholds.aqi_critical:.0f}"
@@ -478,45 +431,40 @@ with col_m4:
         )
     )
     st.metric(
-        label="💨 Air Quality Index",
+        label="Air Quality Index",
         value=f"{input_aqi:.0f} AQI",
         delta=aqi_delta,
         delta_color="inverse" if input_aqi >= active_thresholds.aqi_warning else "normal"
     )
-
 with col_m5:
     st.metric(
-        label="⏱️ Local Eval Latency",
+        label="Local Evaluation Latency",
         value=f"{processing_latency_ms} ms",
         delta=f"Alerts: {total_alerts}/{total_records}",
         delta_color="off",
         help="Measures local in-process Python algorithm risk evaluation execution time on this host. Does NOT represent total network/cloud round-trip latency."
     )
-
 # -----------------------------------------------------------------------------
 # 8. Interactive Plotly Charts (Multi-Parameter Trend with Dynamic Thresholds)
 # -----------------------------------------------------------------------------
-st.markdown("### 📈 Environmental Monitoring Trends")
+st.markdown("### Environmental Monitoring Trends")
 st.caption(
     "Dashed red lines indicate active **Critical Thresholds**; dotted amber lines indicate active **Warning Thresholds**. "
     "Threshold lines update automatically when settings change in the sidebar."
 )
-
 if not df_history.empty:
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=(
-            "🌧️ Rainfall (mm)",
-            "🌊 Reservoir Water Level (%)",
-            "🌡️ Temperature (°C)",
-            "💨 Air Quality Index (AQI)"
+            "Rainfall (mm)",
+            "Reservoir Water Level (%)",
+            "Temperature (°C)",
+            "Air Quality Index (AQI)"
         ),
         vertical_spacing=0.22,
         horizontal_spacing=0.09
     )
-
     timestamps = pd.to_datetime(df_history["timestamp"])
-
     # 1. Rainfall Plot
     fig.add_trace(
         go.Scatter(
@@ -549,7 +497,6 @@ if not df_history.empty:
         annotation_borderpad=3,
         row=1, col=1
     )
-
     # 2. Water Level Plot
     fig.add_trace(
         go.Scatter(
@@ -582,7 +529,6 @@ if not df_history.empty:
         annotation_borderpad=3,
         row=1, col=2
     )
-
     # 3. Temperature Plot
     fig.add_trace(
         go.Scatter(
@@ -615,7 +561,6 @@ if not df_history.empty:
         annotation_borderpad=3,
         row=2, col=1
     )
-
     # 4. AQI Plot
     fig.add_trace(
         go.Scatter(
@@ -648,7 +593,6 @@ if not df_history.empty:
         annotation_borderpad=3,
         row=2, col=2
     )
-
     fig.update_layout(
         height=580,
         margin=dict(l=45, r=35, t=50, b=35),
@@ -658,14 +602,17 @@ if not df_history.empty:
         plot_bgcolor="#0F172A",
         font=dict(color="#F1F5F9", family="sans-serif")
     )
-
     # Style subplot title font color for high contrast
     fig.for_each_annotation(
         lambda a: a.update(font=dict(color="#F1F5F9", size=12, family="sans-serif"))
-        if a.text and any(icon in a.text for icon in ["🌧️", "🌊", "🌡️", "💨"])
+        if a.text and a.text in [
+            "Rainfall (mm)",
+            "Reservoir Water Level (%)",
+            "Temperature (°C)",
+            "Air Quality Index (AQI)"
+        ]
         else None
     )
-
     fig.update_xaxes(
         showgrid=True, gridwidth=1, gridcolor="#334155",
         color="#94A3B8", tickfont=dict(color="#94A3B8", size=10),
@@ -676,16 +623,13 @@ if not df_history.empty:
         color="#94A3B8", tickfont=dict(color="#94A3B8", size=10),
         zeroline=False
     )
-
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("No historical readings recorded yet. Use 'Regenerate 24-Hr Time-Series' or 'Analyze & Log' in the sidebar.")
-
 # -----------------------------------------------------------------------------
 # 9. Historical Records Table & CSV Export
 # -----------------------------------------------------------------------------
-st.markdown("### 📋 Historical Monitoring Log")
-
+st.markdown("### Historical Monitoring Log")
 if not df_history.empty:
     col_t1, col_t2 = st.columns([3, 1])
     with col_t1:
@@ -693,23 +637,20 @@ if not df_history.empty:
     with col_t2:
         csv_bytes = st.session_state.storage_manager.export_csv_bytes()
         st.download_button(
-            label="📥 Export Monitoring Data (CSV)",
+            label="Export Monitoring Data (CSV)",
             data=csv_bytes,
             file_name="disaster_monitoring_records.csv",
             mime="text/csv",
             use_container_width=True
         )
-
     # Display styled table with most recent entries on top
     display_df = df_history.iloc[::-1].copy()
-
     def style_risk(val):
         if val == "CRITICAL":
             return "background-color: #FEE2E2; color: #991B1B; font-weight: bold;"
         elif val == "WARNING":
             return "background-color: #FEF3C7; color: #92400E; font-weight: bold;"
         return "background-color: #ECFDF5; color: #065F46;"
-
     # Compatible styling for both pandas 2.x and pandas 3.x
     if hasattr(display_df.style, "map"):
         styled_table = display_df.style.map(style_risk, subset=["risk_level"])
@@ -719,37 +660,32 @@ if not df_history.empty:
 else:
     st.markdown("""
     *No records available.*
-    - Click **📥 Apply Scenario** in the sidebar to populate demonstration data.
-    - Or enter values manually and click **🚀 Analyze & Log**.
+    - Click **Apply Scenario** in the sidebar to populate demonstration data.
+    - Or enter values manually and click **Analyze & Log**.
     """)
-
 # -----------------------------------------------------------------------------
 # 10. Cloud Computing Syllabus Mapping (FT-III Academic Assessment Notes)
 # -----------------------------------------------------------------------------
-with st.expander("📚 Cloud Computing Syllabus & Architecture Reference (FT-III Alignment)"):
+with st.expander("Cloud Computing Syllabus & Architecture Reference (FT-III Alignment)"):
     st.markdown("""
     #### Unit 1: Fundamentals of Cloud Computing
     - **Current Deployment Model:** Deployed on **Streamlit Community Cloud**, a managed Platform-as-a-Service (PaaS) that runs the application from the GitHub repository with continuous integration.
     - **TCO & CAPEX vs OPEX:** Using cloud PaaS eliminates hardware capital expenditure (CAPEX). Streamlit Community Cloud provides a zero-cost operational expenditure (OPEX) model suitable for academic prototypes.
     - **SLA Realities:** Streamlit Community Cloud is a developer community tier without a financially-backed uptime SLA. Commercial enterprise cloud platforms (e.g. Google Cloud Run or AWS ECS) offer formal 99.95% monthly uptime SLAs.
-
     #### Unit 2: Cloud Architecture & Services
     - **PaaS (Current Deployment):** Streamlit Community Cloud manages the runtime platform, build pipeline, and SSL/TLS HTTPS certificate lifecycle.
     - **IaaS (Theoretical Comparison):** Infrastructure-as-a-Service (such as Google Compute Engine or AWS EC2) would provide raw virtual machines where OS patching, web server setup, and firewall maintenance are user-managed.
     - **CaaS / Container Capability:** The project includes a production `Dockerfile`, demonstrating portable packaging that can be deployed to container platforms like Google Cloud Run or Kubernetes if desired.
     - **Managed Database (Theoretical Comparison):** Persistent cloud databases (such as Google Cloud Firestore or Amazon DynamoDB) provide durable multi-user storage. For this assessment prototype, data is retained in ephemeral local memory/CSV mode to ensure zero credential requirements.
     - **SaaS (User View):** The disaster early warning web dashboard accessed over HTTPS in client browsers.
-
     #### Unit 3: Cloud Security
     - **Transport Layer Security:** Automated end-to-end HTTPS encryption provided by the hosting platform.
     - **Zero Secrets in Codebase:** No hardcoded API keys, database credentials, or private keys.
     - **Input Sanitization:** Strict bounds and type validation protect the alert engine from malformed or out-of-range sensor payloads.
     - **Access Control:** Direct, unauthenticated public access appropriate for an open academic prototype (no fake or insecure authentication).
-
     #### Unit 4: Virtualization & Capacity Planning
     - **Containerization Capability:** Packaged as an OCI-compliant container using `python:3.11-slim` with a Python standard-library healthcheck. Demonstrates OS-level virtualization sharing host kernel resources rather than running heavyweight virtual machine hypervisors.
     - **Capacity & Scaling Realities:** Streamlit Community Cloud allocates isolated container resources with sleep-on-idle capability to conserve shared cloud resources.
-
     #### Unit 5: Cloud Computing Applications
     - Cloud web services deployment, automated Git push-to-deploy pipelines, real-time data handling with Pandas, and interactive analytics visualization with Plotly.
     """)
