@@ -21,9 +21,9 @@ COPY app.py alert_engine.py sample_data.py storage_manager.py ./
 # Cloud Run injects $PORT (default 8080)
 EXPOSE 8080
 
-# Health check to ensure Streamlit server is alive
+# Health check to ensure Streamlit server is alive using Python standard library (no curl required)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:${PORT}/_stcore/health || exit 1
+  CMD python -c "import urllib.request, os, sys; port = os.environ.get('PORT', '8080'); sys.exit(0 if urllib.request.urlopen(f'http://localhost:{port}/_stcore/health').getcode() == 200 else 1)"
 
 # Launch Streamlit server dynamically binding to Cloud Run $PORT
 CMD exec streamlit run app.py \
